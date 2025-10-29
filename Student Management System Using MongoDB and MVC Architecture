@@ -1,0 +1,80 @@
+const express = require('express');
+const mongoose = require('mongoose');
+const app = express();
+app.use(express.json());
+
+mongoose.connect('mongodb://127.0.0.1:27017/studentdb', { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log('MongoDB Connected'))
+  .catch(err => console.error(err));
+
+const studentSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  age: { type: Number, required: true, min: 1 },
+  course: { type: String, required: true }
+});
+
+const Student = mongoose.model('Student', studentSchema);
+
+const studentController = {
+  createStudent: async (req, res) => {
+    try {
+      const { name, age, course } = req.body;
+      const student = new Student({ name, age, course });
+      await student.save();
+      res.status(201).json(student);
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  },
+  getAllStudents: async (req, res) => {
+    try {
+      const students = await Student.find();
+      res.json(students);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  },
+  getStudentById: async (req, res) => {
+    try {
+      const student = await Student.findById(req.params.id);
+      if (!student) return res.status(404).json({ message: 'Student not found' });
+      res.json(student);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  },
+  updateStudent: async (req, res) => {
+    try {
+      const { name, age, course } = req.body;
+      const updated = await Student.findByIdAndUpdate(
+        req.params.id,
+        { name, age, course },
+        { new: true, runValidators: true }
+      );
+      if (!updated) return res.status(404).json({ message: 'Student not found' });
+      res.json(updated);
+    } catch (err) {
+      res.status(400).json({ error: err.message });
+    }
+  },
+  deleteStudent: async (req, res) => {
+    try {
+      const deleted = await Student.findByIdAndDelete(req.params.id);
+      if (!deleted) return res.status(404).json({ message: 'Student not found' });
+      res.json({ message: 'Student deleted successfully' });
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  }
+};
+
+const router = express.Router();
+router.post('/', studentController.createStudent);
+router.get('/', studentController.getAllStudents);
+router.get('/:id', studentController.getStudentById);
+router.put('/:id', studentController.updateStudent);
+router.delete('/:id', studentController.deleteStudent);
+
+app.use('/students', router);
+
+app.listen(3000, () => console.log('Server running on port 3000'));
