@@ -1,0 +1,61 @@
+const mongoose = require('mongoose');
+
+mongoose.connect('mongodb://127.0.0.1:27017/ecommerceDB', { useNewUrlParser: true, useUnifiedTopology: true })
+  .then(() => console.log('MongoDB Connected'))
+  .catch(err => console.error(err));
+
+const variantSchema = new mongoose.Schema({
+  color: String,
+  size: String,
+  stock: Number
+});
+
+const productSchema = new mongoose.Schema({
+  name: { type: String, required: true },
+  price: { type: Number, required: true },
+  category: { type: String, required: true },
+  variants: [variantSchema]
+});
+
+const Product = mongoose.model('Product', productSchema);
+
+async function run() {
+  await Product.deleteMany({});
+
+  await Product.insertMany([
+    {
+      name: 'T-Shirt',
+      price: 25,
+      category: 'Clothing',
+      variants: [
+        { color: 'Red', size: 'M', stock: 10 },
+        { color: 'Blue', size: 'L', stock: 5 }
+      ]
+    },
+    {
+      name: 'Sneakers',
+      price: 80,
+      category: 'Footwear',
+      variants: [
+        { color: 'Black', size: '9', stock: 8 },
+        { color: 'White', size: '10', stock: 3 }
+      ]
+    },
+    {
+      name: 'Backpack',
+      price: 40,
+      category: 'Accessories',
+      variants: [
+        { color: 'Gray', size: 'Standard', stock: 12 }
+      ]
+    }
+  ]);
+
+  console.log('\nAll Products:');
+  console.log(await Product.find());
+
+  console.log('\nProducts in Category "Clothing":');
+  console.log(await Product.find({ category: 'Clothing' }));
+
+  console.log('\nProject Only Variant Details:');
+  console.log(await Product.find({},
